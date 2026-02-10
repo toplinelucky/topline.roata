@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Roata</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Roata</h1>
+
+    <div class="card">
+      <h2>Date participare</h2>
+
+      <form id="preForm">
+        <label>
+          Nume
+          <input name="name" required minlength="2" />
+        </label>
+
+        <label>
+          Email
+          <input name="email" type="email" required />
+        </label>
+
+        <label>
+          Telefon (optional)
+          <input name="phone" />
+        </label>
+
+        <label class="consent">
+          <input name="consent" type="checkbox" required />
+          Sunt de acord cu prelucrarea datelor pentru participare.
+        </label>
+
+        <div class="note" id="note"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <canvas id="wheel" width="420" height="420"></canvas>
+
+      <div class="actions">
+        <button id="spinBtn" disabled>Roteste</button>
+        <div id="result" class="result"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="wheel.js"></script>
+</body>
+</html>
