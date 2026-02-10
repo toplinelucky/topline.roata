@@ -14,16 +14,6 @@ const noteEl = document.getElementById("note");
 const segments = CODES;
 
 let spinning = false;
-let lockedDevice = false;
-
-function setCookie(name, value, days = 365) {
-  const d = new Date();
-  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${d.toUTCString()}; path=/; SameSite=Lax`;
-}
-function getCookie(name) {
-  return document.cookie.split("; ").find(r => r.startsWith(name + "="))?.split("=")[1] || null;
-}
 
 function drawWheel(angle = 0) {
   const { width, height } = canvas;
@@ -74,19 +64,16 @@ function drawWheel(angle = 0) {
 
 drawWheel(0);
 
-// blocare: o singura participare pe dispozitiv
-if (getCookie("wheel_done") === "1") {
-  lockedDevice = true;
-  spinBtn.disabled = true;
-  noteEl.textContent = "Ai participat deja pe acest dispozitiv.";
-}
-
 function updateSpinEnabled() {
-  if (lockedDevice) return;
   spinBtn.disabled = !preForm.checkValidity();
 }
 preForm.addEventListener("input", updateSpinEnabled);
 updateSpinEnabled();
+
+function resetFormForNextPerson() {
+  preForm.reset();       // sterge nume/email/telefon + debifeaza consent
+  updateSpinEnabled();   // dezactiveaza butonul pana completeaza din nou
+}
 
 async function saveParticipant(chosenCode) {
   const fd = new FormData(preForm);
@@ -101,7 +88,7 @@ async function saveParticipant(chosenCode) {
 
   const r = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" }, // IMPORTANT: evita CORS/preflight
+    headers: { "Content-Type": "text/plain;charset=utf-8" }, // evita CORS/preflight
     body: JSON.stringify(payload)
   });
 
@@ -113,7 +100,7 @@ async function saveParticipant(chosenCode) {
 }
 
 spinBtn.addEventListener("click", async () => {
-  if (spinning || lockedDevice) return;
+  if (spinning) return;
 
   if (!preForm.checkValidity()) {
     noteEl.textContent = "Completeaza corect datele pentru a putea roti.";
@@ -133,9 +120,11 @@ spinBtn.addEventListener("click", async () => {
     await saveParticipant(chosenCode);
   } catch (e) {
     spinning = false;
-    spinBtn.disabled = false;
     resultEl.textContent = "";
-    noteEl.textContent = "Nu s-a putut salva. Verifica Apps Script (Deploy: Anyone) sau foloseste alt email.";
+    noteEl.textContent = String(e).includes("email_already_used")
+      ? "Acest email a participat deja. Foloseste un alt email."
+      : "Nu s-a putut salva. Verifica Apps Script (Deploy: Anyone) sau incearca din nou.";
+    updateSpinEnabled();
     return;
   }
 
@@ -159,11 +148,14 @@ spinBtn.addEventListener("click", async () => {
       requestAnimationFrame(tick);
     } else {
       spinning = false;
-      lockedDevice = true;
-      setCookie("wheel_done", "1");
 
       resultEl.textContent = "Codul tau: " + chosenCode;
-      noteEl.textContent = "Salveaza codul pentru utilizare.";
+      noteEl.textContent = "Introdu urmatoarele date pentru urmatorul participant.";
+
+      // elibereaza formularul pentru urmatoarea persoana
+      setTimeout(() => {
+        resetFormForNextPerson();
+      }, 600);
     }
   }
 
