@@ -1,6 +1,6 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
-// aici setezi cele 6 coduri standard cum vrei tu
+// aici setezi cele 6 coduri standard cum vrei tu.
 const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA"];
 
 const canvas = document.getElementById("wheel");
@@ -161,3 +161,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(tick);
 });
+
