@@ -101,37 +101,39 @@ function drawTexts(r) {
   for (let i = 0; i < segments.length; i++) {
     const mid = i * slice + slice / 2;
     const text = String(segments[i] ?? "");
-    const fontSize = clamp(r * 0.10, 26, 52);
+
+    const fontSize = clamp(r * 0.07, 18, 32);
 
     ctx.save();
+
     ctx.rotate(mid);
 
-    const textY = -r * 0.56;
+    // pozitionam textul aproape de margine
+    const textY = -r * 0.72;
+
+    ctx.translate(0, textY);
+
+    // rotim 180° ca sa fie orientat invers
+    ctx.rotate(Math.PI);
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `${fontSize}px Arial`;
+    ctx.font = `bold ${fontSize}px Arial`;
 
-    ctx.shadowColor = "rgba(0,0,0,0.30)";
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
     ctx.shadowBlur = r * 0.02;
     ctx.shadowOffsetX = r * 0.01;
     ctx.shadowOffsetY = r * 0.01;
 
-    ctx.lineWidth = Math.max(2, r * 0.012);
-    ctx.strokeStyle = "rgba(0,0,0,0.35)";
-    ctx.strokeText(text, 0, textY);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(text, 0, 0);
 
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.fillText(text, 0, textY);
-
-    ctx.shadowColor = "rgba(0,0,0,0)";
-    ctx.lineWidth = Math.max(1, r * 0.006);
-    ctx.strokeStyle = "rgba(255,255,255,0.35)";
-    ctx.strokeText(text, 0, textY - r * 0.01);
+    ctx.shadowColor = "transparent";
 
     ctx.restore();
   }
 }
+
 
 function renderFrame(timeMs) {
   setCanvasHiDPI();
@@ -269,4 +271,5 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
