@@ -1,7 +1,9 @@
-// wheel.js
+// wheel.js (COMPLET) — copy/paste tot fisierul
+
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
-const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA","INCA ODATA","APROAPE"];
+// IMPORTANT: pune aici exact cate texte vrei (8/6 etc)
+const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA","OFF20","APROAPE"];
 const segments = CODES;
 
 const canvas = document.getElementById("wheel");
@@ -16,20 +18,25 @@ let spinning = false;
 let currentAngle = 0;
 let rafLoop = null;
 
-// daca nu se aliniaza perfect sub ac, schimba cu +5 / -5 etc (grade)
+// DACA premiul nu pica perfect sub ac, ajustezi cu + / - (grade)
 const WHEEL_OFFSET_DEG = 0;
 
-// imagine roata fara text
+// IMAGINEA ROTII (fara text) — trebuie sa existe in GitHub exact cu numele asta
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
 
-// beculete animate
-const BULB_COUNT = 27;          // exact ca in roata ta
+// -------------------------
+// BECULETE (aliniate cu roata ta)
+// -------------------------
+const BULB_COUNT = 27;            // exact cum ai spus
 const BULB_SPEED = 2.2;
-const BULB_RING = 0.952;        // potrivit pentru wheel.png-ul tau
-const BULB_SIZE = 0.020;        // marime apropiata de becurile desenate
-const BULB_GLOW = 0.050;        // glow realist
-const SKIP_BULB_INDEX = 0;      // becul “lipsa” sus (index 0)
+const BULB_RING = 0.952;          // distanta pe raza (ajustezi fin 0.948-0.956)
+const BULB_SIZE = 0.020;          // marime bec
+const BULB_GLOW = 0.050;          // halo
+
+const SKIP_BULB_INDEX = 0;        // bec lipsa sub ac
+const BULB_START_ANGLE = -Math.PI / 2; // muta index 0 sus (ora 12)
+const BULB_ROTATE_DEG = 0;        // reglaj fin (2,4,-2 etc daca vrei)
 
 function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
@@ -59,16 +66,18 @@ function drawBulbs(r, timeSec) {
   const glowR = r * BULB_GLOW;
   const ringR = r * BULB_RING;
 
+  const rot = degToRad(BULB_ROTATE_DEG);
+
   for (let i = 0; i < BULB_COUNT; i++) {
-    // sare peste becul de sus (inlocuit de ac)
     if (typeof SKIP_BULB_INDEX === "number" && i === SKIP_BULB_INDEX) continue;
 
-    const a = (i / BULB_COUNT) * Math.PI * 2;
+    // start sus + rotatie fina
+    const a = BULB_START_ANGLE + rot + (i / BULB_COUNT) * Math.PI * 2;
 
+    // puls + alternare
     const phase = timeSec * BULB_SPEED + i * 0.55;
     const pulse = 0.55 + 0.45 * Math.sin(phase);
     const isAlt = i % 2 === 0 ? 1 : 0;
-
     const intensity = clamp((isAlt ? 0.65 : 0.45) + pulse * 0.45, 0.25, 1.0);
 
     const x = Math.cos(a) * ringR;
@@ -82,7 +91,7 @@ function drawBulbs(r, timeSec) {
     ctx.fill();
     ctx.restore();
 
-    // bulb (gradient)
+    // bulb
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, bulbR, 0, Math.PI * 2);
@@ -101,6 +110,7 @@ function drawBulbs(r, timeSec) {
   }
 }
 
+// TEXT “pe lung” (centru → exterior) ca in poza ta
 function drawTexts(r) {
   const slice = (2 * Math.PI) / segments.length;
 
@@ -113,22 +123,22 @@ function drawTexts(r) {
     ctx.save();
     ctx.rotate(mid);
 
-    // punct de start mai aproape de centru (de aici “pleaca” textul spre exterior)
-    const startFromCenter = r * 0.28;
+    // unde incepe textul (spre centru). maresti ca sa fie mai spre exterior
+    const startFromCenter = r * 0.30;
     ctx.translate(startFromCenter, 0);
 
-    // textul merge pe axa X (care acum este radial, spre exterior)
+    // textul merge spre exterior pe raza
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${fontSize}px Arial`;
 
-    // umbra realist
+    // umbra realista
     ctx.shadowColor = "rgba(0,0,0,0.35)";
     ctx.shadowBlur = r * 0.016;
     ctx.shadowOffsetX = r * 0.008;
     ctx.shadowOffsetY = r * 0.008;
 
-    // contur discret ca sa se vada pe alb si rosu
+    // contur subtil
     ctx.lineWidth = Math.max(2, r * 0.010);
     ctx.strokeStyle = "rgba(0,0,0,0.28)";
     ctx.strokeText(text, 0, 0);
@@ -139,7 +149,6 @@ function drawTexts(r) {
     ctx.restore();
   }
 }
-
 
 function renderFrame(timeMs) {
   setCanvasHiDPI();
@@ -158,10 +167,14 @@ function renderFrame(timeMs) {
   ctx.translate(cx, cy);
   ctx.rotate(currentAngle);
 
+  // roata
   ctx.drawImage(wheelImg, -r, -r, r * 2, r * 2);
 
+  // IMPORTANT: becurile peste roata (suprapuse)
   const timeSec = timeMs / 1000;
   drawBulbs(r, timeSec);
+
+  // texte peste
   drawTexts(r);
 
   ctx.restore();
@@ -210,7 +223,7 @@ wheelImg.onload = () => {
 
 wheelImg.onerror = () => {
   resultEl.textContent = "";
-  noteEl.textContent = "Nu gasesc imaginea wheel-base.png. Verifica numele si locul fisierului in GitHub.";
+  noteEl.textContent = "Nu gasesc wheel-base.png. Verifica numele exact si ca e in acelasi folder cu index.html.";
 };
 
 spinBtn.addEventListener("click", async () => {
@@ -243,6 +256,8 @@ spinBtn.addEventListener("click", async () => {
 
   const slice = (2 * Math.PI) / segments.length;
   const offset = degToRad(WHEEL_OFFSET_DEG);
+
+  // aliniem segmentul castigator sub ac (acul este sus)
   const target = -(winningIndex * slice + slice / 2) + offset;
 
   const spins = 6;
@@ -277,9 +292,3 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
-
-
-
-
-
-
