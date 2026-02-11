@@ -46,7 +46,7 @@ const POINTER_OFFSET_DEG = 0;
 // =============================
 // + = spre dreapta pe arc (clockwise), - = spre stanga (counterclockwise)
 const TEXT_SHIFT_PX = 0; // pune 0 ca sa fie perfect pe mijloc
-const TEXT_RADIUS_FACTOR = 0.58;
+const TEXT_RADIUS_FACTOR = -0.58;
 
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
@@ -282,3 +282,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
