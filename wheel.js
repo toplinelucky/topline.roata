@@ -1,7 +1,3 @@
-// ============================
-// WHEEL.JS COMPLET
-// ============================
-
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
@@ -28,7 +24,12 @@ const noteEl = document.getElementById("note");
 let spinning = false;
 let currentAngle = 0;
 
-const WHEEL_OFFSET_DEG = 0; // daca vrei micro-ajustare
+const WHEEL_OFFSET_DEG = 0;
+
+// ✅ AICI muti textele stanga/dreapta
+// valori bune: -0.12 .. +0.12
+// + = in sensul acelor de ceas, - = invers
+const TEXT_OFFSET_RAD = 0.00;
 
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
@@ -38,17 +39,18 @@ function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 // ---------------------------
-// TEXT CENTRAT PERFECT
+// TEXT CENTRAT + OFFSET STANGA/DREAPTA
 // ---------------------------
 function drawTexts(r) {
-
   const slice = (2 * Math.PI) / segments.length;
-  const textRadius = r * 0.58; // centru echilibrat
+
+  // pozitia textului pe raza (centrul vizual al segmentului)
+  const textRadius = r * 0.58;
 
   for (let i = 0; i < segments.length; i++) {
-
-    const mid = i * slice + slice / 2;
-    const text = segments[i];
+    // ✅ mid este centrul segmentului, TEXT_OFFSET_RAD il muta stanga/dreapta
+    const mid = i * slice + slice / 2 + TEXT_OFFSET_RAD;
+    const text = String(segments[i] ?? "");
 
     const x = Math.cos(mid) * textRadius;
     const y = Math.sin(mid) * textRadius;
@@ -58,19 +60,18 @@ function drawTexts(r) {
     ctx.save();
     ctx.translate(x, y);
 
-    // orientare radial
+    // text radial (pe lung)
     ctx.rotate(mid);
 
-    // daca e pe partea stanga, intoarcem textul
+    // daca e pe partea stanga, intoarcem textul sa fie citibil
     const a = ((mid % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-    if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) {
-      ctx.rotate(Math.PI);
-    }
+    if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) ctx.rotate(Math.PI);
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `700 ${fontSize}px Arial`;
 
+    // umbra + contur
     ctx.shadowColor = "rgba(0,0,0,0.25)";
     ctx.shadowBlur = r * 0.015;
     ctx.shadowOffsetX = r * 0.006;
@@ -88,10 +89,9 @@ function drawTexts(r) {
 }
 
 // ---------------------------
-// RENDER FRAME
+// RENDER
 // ---------------------------
 function renderFrame() {
-
   const w = canvas.width;
   const h = canvas.height;
   const cx = w / 2;
@@ -112,8 +112,10 @@ function renderFrame() {
   requestAnimationFrame(renderFrame);
 }
 
-wheelImg.onload = () => {
-  requestAnimationFrame(renderFrame);
+wheelImg.onload = () => requestAnimationFrame(renderFrame);
+wheelImg.onerror = () => {
+  resultEl.textContent = "";
+  noteEl.textContent = "Nu gasesc wheel-base.png. Verifica numele si locul fisierului.";
 };
 
 // ---------------------------
@@ -131,12 +133,10 @@ function resetFormForNextPerson() {
 }
 
 // ---------------------------
-// SAVE PARTICIPANT
+// SAVE
 // ---------------------------
 async function saveParticipant(code) {
-
   const fd = new FormData(preForm);
-
   const payload = {
     name: fd.get("name"),
     email: fd.get("email"),
@@ -154,18 +154,14 @@ async function saveParticipant(code) {
 
   const text = await r.text();
   let data;
-
-  try { data = JSON.parse(text); }
-  catch { data = { ok: false }; }
-
-  if (!r.ok || !data.ok) throw new Error("save_error");
+  try { data = JSON.parse(text); } catch { data = { ok: false, error: text }; }
+  if (!r.ok || !data.ok) throw new Error(data.error || "save_error");
 }
 
 // ---------------------------
-// SPIN LOGIC (CORECT)
+// SPIN (segmentul ales ajunge fix sub ac)
 // ---------------------------
 spinBtn.addEventListener("click", async () => {
-
   if (spinning) return;
 
   if (!preForm.checkValidity()) {
@@ -186,7 +182,9 @@ spinBtn.addEventListener("click", async () => {
   } catch (e) {
     spinning = false;
     resultEl.textContent = "";
-    noteEl.textContent = "Eroare salvare.";
+    noteEl.textContent = String(e).includes("email_already_used")
+      ? "Acest email a participat deja. Foloseste un alt email."
+      : "Eroare salvare. Incearca din nou.";
     updateSpinEnabled();
     return;
   }
@@ -195,13 +193,20 @@ spinBtn.addEventListener("click", async () => {
   const offset = degToRad(WHEEL_OFFSET_DEG);
 
   const pointerAngle = -Math.PI / 2;
-  const segmentCenter = winningIndex * slice + slice / 2;
-  const target = pointerAngle - segmentCenter + offset;
+
+  const segStart = winningIndex * slice;
+  const pad = slice * 0.12;
+  const pick = segStart + pad + Math.random() * (slice - 2 * pad);
+
+  const target = pointerAngle - pick + offset;
 
   const spins = 6;
   const from = currentAngle;
   const full = 2 * Math.PI;
-  const to = from + spins * full + (target - (from % full));
+
+  const fromNorm = ((from % full) + full) % full;
+  const delta = target - fromNorm;
+  const to = from + spins * full + delta;
 
   const start = performance.now();
   const duration = 2500;
@@ -211,9 +216,8 @@ spinBtn.addEventListener("click", async () => {
     const eased = easeOutCubic(t);
     currentAngle = from + (to - from) * eased;
 
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
+    if (t < 1) requestAnimationFrame(animate);
+    else {
       spinning = false;
       resultEl.textContent = "Codul tau: " + chosenCode;
       noteEl.textContent = "Urmatorul participant.";
