@@ -30,8 +30,8 @@ wheelImg.src = "wheel-base.png";
 // -------------------------
 const BULB_COUNT = 27;            // exact cum ai spus
 const BULB_SPEED = 2.2;
-const BULB_RING = 0.952;          // distanta pe raza (ajustezi fin 0.948-0.956)
-const BULB_SIZE = 0.020;          // marime bec
+const BULB_RING = 0.95;          // distanta pe raza (ajustezi fin 0.948-0.956)
+const BULB_SIZE = 0.018;          // marime bec
 const BULB_GLOW = 0.050;          // halo
 
 const SKIP_BULB_INDEX = 0;        // bec lipsa sub ac
@@ -292,3 +292,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
