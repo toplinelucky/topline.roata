@@ -187,42 +187,41 @@ spinBtn.addEventListener("click", async () => {
     return;
   }
 
-  const slice = (2 * Math.PI) / segments.length;
-  const offset = degToRad(WHEEL_OFFSET_DEG);
+const slice = (2 * Math.PI) / segments.length;
+const offset = degToRad(WHEEL_OFFSET_DEG);
 
-  // acul este sus; aducem segmentul castigator sub ac
-  const target = -(winningIndex * slice + slice / 2) + offset;
+const pointerAngle = -Math.PI / 2;
+const segmentCenter = winningIndex * slice + slice / 2;
+const target = pointerAngle - segmentCenter + offset;
 
-  const spins = 6;
-  const from = currentAngle;
-  const full = 2 * Math.PI;
+const spins = 6;
+const from = currentAngle;
+const full = 2 * Math.PI;
 
-  const fromNorm = ((from % full) + full) % full;
-  const deltaToTarget = target - fromNorm;
-  const to = from + spins * full + deltaToTarget;
+const to = from + spins * full + (target - (from % full));
 
-  const start = performance.now();
-  const duration = 2500;
+const start = performance.now();
+const duration = 2500;
 
-  function animate(now) {
-    const t = Math.min(1, (now - start) / duration);
-    const eased = easeOutCubic(t);
-    currentAngle = from + (to - from) * eased;
+function animate(now) {
+  const t = Math.min(1, (now - start) / duration);
+  const eased = easeOutCubic(t);
+  currentAngle = from + (to - from) * eased;
 
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      spinning = false;
+  if (t < 1) {
+    requestAnimationFrame(animate);
+  } else {
+    spinning = false;
+    resultEl.textContent = "Codul tau: " + chosenCode;
+    noteEl.textContent = "Introdu urmatoarele date pentru urmatorul participant.";
 
-      resultEl.textContent = "Codul tau: " + chosenCode;
-      noteEl.textContent = "Introdu urmatoarele date pentru urmatorul participant.";
-
-      setTimeout(() => {
-        resetFormForNextPerson();
-      }, 600);
-    }
+    setTimeout(() => {
+      resetFormForNextPerson();
+    }, 600);
   }
+}
 
-  requestAnimationFrame(animate);
+requestAnimationFrame(animate);
 });
+
 
