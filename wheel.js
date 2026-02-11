@@ -1,9 +1,21 @@
+// ============================
+// WHEEL.JS COMPLET
+// ============================
+
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
-// 8 segmente = 8 texte
-const CODES = ["OFF20", "MAI INCEARCA", "5%", "APROAPE", "15%OFF", "INCA ODATA", "10% EXTRA", "PREMIU BONUS"];
-const segments = CODES;
+// 8 segmente
+const segments = [
+  "OFF20",
+  "MAI INCEARCA",
+  "5%",
+  "APROAPE",
+  "15%OFF",
+  "INCA ODATA",
+  "10% EXTRA",
+  "PREMIU BONUS"
+];
 
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
@@ -15,12 +27,9 @@ const noteEl = document.getElementById("note");
 
 let spinning = false;
 let currentAngle = 0;
-let rafLoop = null;
 
-// daca premiul nu pica perfect sub ac, reglezi cu +/- grade
-const WHEEL_OFFSET_DEG = 0;
+const WHEEL_OFFSET_DEG = 0; // daca vrei micro-ajustare
 
-// imagine roata (fara text) — trebuie sa existe exact cu numele asta
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
 
@@ -28,67 +37,60 @@ function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-function setCanvasHiDPI() {
-  const dpr = window.devicePixelRatio || 1;
-  const css = canvas.getBoundingClientRect();
-  const size = Math.floor(Math.min(css.width, css.height) * dpr);
-  if (size > 0 && (canvas.width !== size || canvas.height !== size)) {
-    canvas.width = size;
-    canvas.height = size;
-  }
-}
-
-function drawShadowDisk(cx, cy, r) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx + r * 0.02, cy + r * 0.05, r * 0.98, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fill();
-  ctx.restore();
-}
-
-// TEXT CENTRAT (50% din raza), pe lung (radial)
+// ---------------------------
+// TEXT CENTRAT PERFECT
+// ---------------------------
 function drawTexts(r) {
+
   const slice = (2 * Math.PI) / segments.length;
+  const textRadius = r * 0.58; // centru echilibrat
 
   for (let i = 0; i < segments.length; i++) {
 
     const mid = i * slice + slice / 2;
-    const text = String(segments[i] ?? "");
-
-    // 🔥 CENTRU EXACT AL SEGMENTULUI (50% din raza)
-    const textRadius = r * 0.50;
+    const text = segments[i];
 
     const x = Math.cos(mid) * textRadius;
     const y = Math.sin(mid) * textRadius;
 
-    const fontSize = clamp(r * 0.075, 18, 34);
+    const fontSize = clamp(r * 0.070, 18, 32);
 
     ctx.save();
     ctx.translate(x, y);
 
-    // radial din centru spre exterior
+    // orientare radial
     ctx.rotate(mid);
+
+    // daca e pe partea stanga, intoarcem textul
+    const a = ((mid % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) {
+      ctx.rotate(Math.PI);
+    }
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.font = `700 ${fontSize}px Arial`;
 
-    // umbra discreta eleganta
-    ctx.shadowColor = "rgba(0,0,0,0.30)";
+    ctx.shadowColor = "rgba(0,0,0,0.25)";
     ctx.shadowBlur = r * 0.015;
     ctx.shadowOffsetX = r * 0.006;
     ctx.shadowOffsetY = r * 0.006;
 
-    ctx.fillStyle = "#ffffff";
+    ctx.lineWidth = Math.max(2, r * 0.010);
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.strokeText(text, 0, 0);
+
+    ctx.fillStyle = "rgba(255,255,255,0.98)";
     ctx.fillText(text, 0, 0);
 
     ctx.restore();
   }
 }
 
+// ---------------------------
+// RENDER FRAME
+// ---------------------------
 function renderFrame() {
-  setCanvasHiDPI();
 
   const w = canvas.width;
   const h = canvas.height;
@@ -98,23 +100,25 @@ function renderFrame() {
 
   ctx.clearRect(0, 0, w, h);
 
-  drawShadowDisk(cx, cy, r);
-
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(currentAngle);
 
-  // roata
   ctx.drawImage(wheelImg, -r, -r, r * 2, r * 2);
-
-  // texte peste roata
   drawTexts(r);
 
   ctx.restore();
 
-  rafLoop = requestAnimationFrame(renderFrame);
+  requestAnimationFrame(renderFrame);
 }
 
+wheelImg.onload = () => {
+  requestAnimationFrame(renderFrame);
+};
+
+// ---------------------------
+// FORM
+// ---------------------------
 function updateSpinEnabled() {
   spinBtn.disabled = !preForm.checkValidity();
 }
@@ -126,14 +130,19 @@ function resetFormForNextPerson() {
   updateSpinEnabled();
 }
 
-async function saveParticipant(chosenCode) {
+// ---------------------------
+// SAVE PARTICIPANT
+// ---------------------------
+async function saveParticipant(code) {
+
   const fd = new FormData(preForm);
+
   const payload = {
     name: fd.get("name"),
     email: fd.get("email"),
     phone: fd.get("phone"),
     consent: fd.get("consent") === "on",
-    code: chosenCode,
+    code: code,
     userAgent: navigator.userAgent
   };
 
@@ -145,25 +154,22 @@ async function saveParticipant(chosenCode) {
 
   const text = await r.text();
   let data;
-  try { data = JSON.parse(text); } catch { data = { ok: false, error: text }; }
-  if (!r.ok || !data.ok) throw new Error(data.error || "request_failed");
+
+  try { data = JSON.parse(text); }
+  catch { data = { ok: false }; }
+
+  if (!r.ok || !data.ok) throw new Error("save_error");
 }
 
-wheelImg.onload = () => {
-  if (rafLoop) cancelAnimationFrame(rafLoop);
-  rafLoop = requestAnimationFrame(renderFrame);
-};
-
-wheelImg.onerror = () => {
-  resultEl.textContent = "";
-  noteEl.textContent = "Nu gasesc wheel-base.png. Verifica numele exact si ca e in acelasi folder cu index.html.";
-};
-
+// ---------------------------
+// SPIN LOGIC (CORECT)
+// ---------------------------
 spinBtn.addEventListener("click", async () => {
+
   if (spinning) return;
 
   if (!preForm.checkValidity()) {
-    noteEl.textContent = "Completeaza corect datele pentru a putea roti.";
+    noteEl.textContent = "Completeaza corect datele.";
     return;
   }
 
@@ -180,48 +186,40 @@ spinBtn.addEventListener("click", async () => {
   } catch (e) {
     spinning = false;
     resultEl.textContent = "";
-    noteEl.textContent = String(e).includes("email_already_used")
-      ? "Acest email a participat deja. Foloseste un alt email."
-      : "Nu s-a putut salva. Incearca din nou.";
+    noteEl.textContent = "Eroare salvare.";
     updateSpinEnabled();
     return;
   }
 
-const slice = (2 * Math.PI) / segments.length;
-const offset = degToRad(WHEEL_OFFSET_DEG);
+  const slice = (2 * Math.PI) / segments.length;
+  const offset = degToRad(WHEEL_OFFSET_DEG);
 
-const pointerAngle = -Math.PI / 2;
-const segmentCenter = winningIndex * slice + slice / 2;
-const target = pointerAngle - segmentCenter + offset;
+  const pointerAngle = -Math.PI / 2;
+  const segmentCenter = winningIndex * slice + slice / 2;
+  const target = pointerAngle - segmentCenter + offset;
 
-const spins = 6;
-const from = currentAngle;
-const full = 2 * Math.PI;
+  const spins = 6;
+  const from = currentAngle;
+  const full = 2 * Math.PI;
+  const to = from + spins * full + (target - (from % full));
 
-const to = from + spins * full + (target - (from % full));
+  const start = performance.now();
+  const duration = 2500;
 
-const start = performance.now();
-const duration = 2500;
+  function animate(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = easeOutCubic(t);
+    currentAngle = from + (to - from) * eased;
 
-function animate(now) {
-  const t = Math.min(1, (now - start) / duration);
-  const eased = easeOutCubic(t);
-  currentAngle = from + (to - from) * eased;
-
-  if (t < 1) {
-    requestAnimationFrame(animate);
-  } else {
-    spinning = false;
-    resultEl.textContent = "Codul tau: " + chosenCode;
-    noteEl.textContent = "Introdu urmatoarele date pentru urmatorul participant.";
-
-    setTimeout(() => {
-      resetFormForNextPerson();
-    }, 600);
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      resultEl.textContent = "Codul tau: " + chosenCode;
+      noteEl.textContent = "Urmatorul participant.";
+      setTimeout(resetFormForNextPerson, 600);
+    }
   }
-}
 
-requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 });
-
-
