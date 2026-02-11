@@ -102,37 +102,54 @@ function drawTexts(r) {
     const mid = i * slice + slice / 2;
     const text = String(segments[i] ?? "");
 
-    const fontSize = clamp(r * 0.07, 18, 32);
+    // font mai mic la 8 segmente
+    const fontSize = clamp(r * 0.065, 16, 30);
 
     ctx.save();
-
     ctx.rotate(mid);
 
-    // pozitionam textul aproape de margine
-    const textY = -r * 0.72;
+    // unde sta textul pe raza (reglezi)
+    // mai spre exterior: -0.62 / mai spre centru: -0.52
+    const radialPos = -r * 0.60;
+    ctx.translate(0, radialPos);
 
-    ctx.translate(0, textY);
+    // Vrem textul sa curga pe raza (dinspre centru spre exterior).
+    // Textul se deseneaza pe axa X, deci il rotim cu -90° ca sa devina pe raza.
+    // Si il “intoarcem” automat pe partea stanga a rotii ca sa fie mereu citibil.
+    const a = ((mid % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
-    // rotim 180° ca sa fie orientat invers
-    ctx.rotate(Math.PI);
+    if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) {
+      // partea stanga -> inversam ca sa nu fie cu capul in jos
+      ctx.rotate(Math.PI / 2);
+      ctx.textAlign = "right";
+    } else {
+      // partea dreapta
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "left";
+    }
 
-    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${fontSize}px Arial`;
 
+    // umbra realistă
     ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = r * 0.02;
-    ctx.shadowOffsetX = r * 0.01;
-    ctx.shadowOffsetY = r * 0.01;
+    ctx.shadowBlur = r * 0.018;
+    ctx.shadowOffsetX = r * 0.008;
+    ctx.shadowOffsetY = r * 0.008;
 
-    ctx.fillStyle = "#ffffff";
+    // contur fin ca sa se vada si pe alb, si pe rosu
+    ctx.lineWidth = Math.max(2, r * 0.010);
+    ctx.strokeStyle = "rgba(0,0,0,0.28)";
+    ctx.strokeText(text, 0, 0);
+
+    // fill
+    ctx.fillStyle = "rgba(255,255,255,0.96)";
     ctx.fillText(text, 0, 0);
-
-    ctx.shadowColor = "transparent";
 
     ctx.restore();
   }
 }
+
 
 
 function renderFrame(timeMs) {
@@ -271,5 +288,6 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
 
