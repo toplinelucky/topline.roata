@@ -32,7 +32,7 @@ const WHEEL_OFFSET_DEG = 0;
 
 // ✅ DOAR VIZUAL: muti textul stanga/dreapta fara sa afecteze premiul
 // valori bune: -0.12 .. +0.12
-const TEXT_VISUAL_OFFSET_RAD = 0.40;
+const TEXT_VISUAL_OFFSET_RAD = 0.45;
 
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
@@ -242,4 +242,5 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
