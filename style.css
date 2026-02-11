@@ -60,7 +60,7 @@ body{
   top: -2%;
   left: 50%;
   transform: translateX(-50%);
-  width: 18%;
+  width: 8%;
   height: auto;
   z-index: 5;
   pointer-events:none;
@@ -142,3 +142,4 @@ body{
   font-size: 14px;
   color: rgba(26,15,18,0.75);
 }
+
