@@ -1,7 +1,7 @@
 // wheel.js
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
-const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA"];
+const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA","INCA ODATA","APROAPE"];
 const segments = CODES;
 
 const canvas = document.getElementById("wheel");
@@ -269,3 +269,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
