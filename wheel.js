@@ -28,11 +28,11 @@ let spinning = false;
 let currentAngle = 0;
 
 // micro-reglaj pentru roata vs ac (NU are legatura cu textul)
-const WHEEL_OFFSET_DEG = 0;
+const WHEEL_OFFSET_DEG = 5;
 
 // ✅ DOAR VIZUAL: muti textul stanga/dreapta fara sa afecteze premiul
 // valori bune: -0.12 .. +0.12
-const TEXT_VISUAL_OFFSET_RAD = 0.45;
+const TEXT_VISUAL_OFFSET_RAD = 0.55;
 
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
@@ -242,5 +242,6 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
 
