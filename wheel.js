@@ -1,9 +1,8 @@
-// wheel.js (COMPLET) — copy/paste tot fisierul
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
-
-// IMPORTANT: pune aici exact cate texte vrei (8/6 etc)
-const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA","OFF20","APROAPE"];
+// 8 segmente = 8 texte
+const CODES = ["OFF20", "MAI INCEARCA", "5%", "APROAPE", "15%OFF", "INCA ODATA", "10% EXTRA", "PREMIU BONUS"];
 const segments = CODES;
 
 const canvas = document.getElementById("wheel");
@@ -18,29 +17,16 @@ let spinning = false;
 let currentAngle = 0;
 let rafLoop = null;
 
-// DACA premiul nu pica perfect sub ac, ajustezi cu + / - (grade)
+// daca premiul nu pica perfect sub ac, reglezi cu +/- grade
 const WHEEL_OFFSET_DEG = 0;
 
-// IMAGINEA ROTII (fara text) — trebuie sa existe in GitHub exact cu numele asta
+// imagine roata (fara text) — trebuie sa existe exact cu numele asta
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
 
-// -------------------------
-// BECULETE (aliniate cu roata ta)
-// -------------------------
-const BULB_COUNT = 27;            // exact cum ai spus
-const BULB_SPEED = 2.2;
-const BULB_RING = 0.95;          // distanta pe raza (ajustezi fin 0.948-0.956)
-const BULB_SIZE = 0.018;          // marime bec
-const BULB_GLOW = 0.050;          // halo
-
-const SKIP_BULB_INDEX = 0;        // bec lipsa sub ac
-const BULB_START_ANGLE = -Math.PI / 2; // muta index 0 sus (ora 12)
-const BULB_ROTATE_DEG = 0;        // reglaj fin (2,4,-2 etc daca vrei)
-
 function degToRad(d) { return (d * Math.PI) / 180; }
-function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
 function setCanvasHiDPI() {
   const dpr = window.devicePixelRatio || 1;
@@ -55,62 +41,13 @@ function setCanvasHiDPI() {
 function drawShadowDisk(cx, cy, r) {
   ctx.save();
   ctx.beginPath();
-  ctx.arc(cx + r*0.02, cy + r*0.05, r*0.98, 0, Math.PI * 2);
+  ctx.arc(cx + r * 0.02, cy + r * 0.05, r * 0.98, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.fill();
   ctx.restore();
 }
 
-function drawBulbs(r, timeSec) {
-  const bulbR = r * BULB_SIZE;
-  const glowR = r * BULB_GLOW;
-  const ringR = r * BULB_RING;
-
-  const rot = degToRad(BULB_ROTATE_DEG);
-
-  for (let i = 0; i < BULB_COUNT; i++) {
-    if (typeof SKIP_BULB_INDEX === "number" && i === SKIP_BULB_INDEX) continue;
-
-    // start sus + rotatie fina
-    const a = BULB_START_ANGLE + rot + (i / BULB_COUNT) * Math.PI * 2;
-
-    // puls + alternare
-    const phase = timeSec * BULB_SPEED + i * 0.55;
-    const pulse = 0.55 + 0.45 * Math.sin(phase);
-    const isAlt = i % 2 === 0 ? 1 : 0;
-    const intensity = clamp((isAlt ? 0.65 : 0.45) + pulse * 0.45, 0.25, 1.0);
-
-    const x = Math.cos(a) * ringR;
-    const y = Math.sin(a) * ringR;
-
-    // glow
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, glowR, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 210, 120, ${0.22 * intensity})`;
-    ctx.fill();
-    ctx.restore();
-
-    // bulb
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, bulbR, 0, Math.PI * 2);
-
-    const g = ctx.createRadialGradient(
-      x - bulbR * 0.35, y - bulbR * 0.35, bulbR * 0.2,
-      x, y, bulbR
-    );
-    g.addColorStop(0, `rgba(255,255,235,${0.95 * intensity})`);
-    g.addColorStop(0.55, `rgba(255,210,120,${0.90 * intensity})`);
-    g.addColorStop(1, `rgba(210,120,30,${0.95 * intensity})`);
-
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-// TEXT “pe lung” (centru → exterior) ca in poza ta
+// TEXT CENTRAT (50% din raza), pe lung (radial)
 function drawTexts(r) {
   const slice = (2 * Math.PI) / segments.length;
 
@@ -118,27 +55,27 @@ function drawTexts(r) {
     const mid = i * slice + slice / 2;
     const text = String(segments[i] ?? "");
 
-    const fontSize = clamp(r * 0.062, 16, 30);
+    const textRadius = r * 0.50;
+    const x = Math.cos(mid) * textRadius;
+    const y = Math.sin(mid) * textRadius;
+
+    const fontSize = clamp(r * 0.070, 16, 30);
 
     ctx.save();
-    ctx.rotate(mid);
+    ctx.translate(x, y);
+    ctx.rotate(mid); // radial
 
-    // unde incepe textul (spre centru). maresti ca sa fie mai spre exterior
-    const startFromCenter = r * 0.30;
-    ctx.translate(startFromCenter, 0);
-
-    // textul merge spre exterior pe raza
-    ctx.textAlign = "left";
+    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${fontSize}px Arial`;
 
-    // umbra realista
+    // umbra discreta
     ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = r * 0.016;
-    ctx.shadowOffsetX = r * 0.008;
-    ctx.shadowOffsetY = r * 0.008;
+    ctx.shadowBlur = r * 0.012;
+    ctx.shadowOffsetX = r * 0.006;
+    ctx.shadowOffsetY = r * 0.006;
 
-    // contur subtil
+    // contur discret
     ctx.lineWidth = Math.max(2, r * 0.010);
     ctx.strokeStyle = "rgba(0,0,0,0.28)";
     ctx.strokeText(text, 0, 0);
@@ -150,7 +87,7 @@ function drawTexts(r) {
   }
 }
 
-function renderFrame(timeMs) {
+function renderFrame() {
   setCanvasHiDPI();
 
   const w = canvas.width;
@@ -170,11 +107,7 @@ function renderFrame(timeMs) {
   // roata
   ctx.drawImage(wheelImg, -r, -r, r * 2, r * 2);
 
-  // IMPORTANT: becurile peste roata (suprapuse)
-  const timeSec = timeMs / 1000;
-  drawBulbs(r, timeSec);
-
-  // texte peste
+  // texte peste roata
   drawTexts(r);
 
   ctx.restore();
@@ -257,16 +190,15 @@ spinBtn.addEventListener("click", async () => {
   const slice = (2 * Math.PI) / segments.length;
   const offset = degToRad(WHEEL_OFFSET_DEG);
 
-  // aliniem segmentul castigator sub ac (acul este sus)
+  // acul este sus; aducem segmentul castigator sub ac
   const target = -(winningIndex * slice + slice / 2) + offset;
 
   const spins = 6;
   const from = currentAngle;
-
   const full = 2 * Math.PI;
+
   const fromNorm = ((from % full) + full) % full;
   const deltaToTarget = target - fromNorm;
-
   const to = from + spins * full + deltaToTarget;
 
   const start = performance.now();
@@ -281,6 +213,7 @@ spinBtn.addEventListener("click", async () => {
       requestAnimationFrame(animate);
     } else {
       spinning = false;
+
       resultEl.textContent = "Codul tau: " + chosenCode;
       noteEl.textContent = "Introdu urmatoarele date pentru urmatorul participant.";
 
@@ -292,4 +225,3 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
-
