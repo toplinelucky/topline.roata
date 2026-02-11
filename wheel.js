@@ -29,7 +29,7 @@ const WHEEL_OFFSET_DEG = 0;
 // ✅ AICI muti textele stanga/dreapta
 // valori bune: -0.12 .. +0.12
 // + = in sensul acelor de ceas, - = invers
-const TEXT_OFFSET_RAD = 0.00;
+const TEXT_OFFSET_RAD = -0.12;
 
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
@@ -227,3 +227,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
