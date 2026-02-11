@@ -24,11 +24,12 @@ const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
 
 // beculete animate
-const BULB_COUNT = 28;
+const BULB_COUNT = 27;          // exact ca in roata ta
 const BULB_SPEED = 2.2;
-const BULB_RING = 0.95;     // pozitie pe inel (potrivita pentru roata ta)
-const BULB_SIZE = 0.020;    // marime bec (mai mica, ca in imagine)
-const BULB_GLOW = 0.050;    // glow realist
+const BULB_RING = 0.952;        // potrivit pentru wheel.png-ul tau
+const BULB_SIZE = 0.020;        // marime apropiata de becurile desenate
+const BULB_GLOW = 0.050;        // glow realist
+const SKIP_BULB_INDEX = 0;      // becul “lipsa” sus (index 0)
 
 function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
@@ -59,6 +60,9 @@ function drawBulbs(r, timeSec) {
   const ringR = r * BULB_RING;
 
   for (let i = 0; i < BULB_COUNT; i++) {
+    // sare peste becul de sus (inlocuit de ac)
+    if (typeof SKIP_BULB_INDEX === "number" && i === SKIP_BULB_INDEX) continue;
+
     const a = (i / BULB_COUNT) * Math.PI * 2;
 
     const phase = timeSec * BULB_SPEED + i * 0.55;
@@ -70,6 +74,7 @@ function drawBulbs(r, timeSec) {
     const x = Math.cos(a) * ringR;
     const y = Math.sin(a) * ringR;
 
+    // glow
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, glowR, 0, Math.PI * 2);
@@ -77,6 +82,7 @@ function drawBulbs(r, timeSec) {
     ctx.fill();
     ctx.restore();
 
+    // bulb (gradient)
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, bulbR, 0, Math.PI * 2);
@@ -271,6 +277,7 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
 
 
