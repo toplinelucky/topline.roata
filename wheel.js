@@ -52,35 +52,35 @@ function drawTexts(r) {
   const slice = (2 * Math.PI) / segments.length;
 
   for (let i = 0; i < segments.length; i++) {
+
     const mid = i * slice + slice / 2;
     const text = String(segments[i] ?? "");
 
+    // 🔥 CENTRU EXACT AL SEGMENTULUI (50% din raza)
     const textRadius = r * 0.50;
+
     const x = Math.cos(mid) * textRadius;
     const y = Math.sin(mid) * textRadius;
 
-    const fontSize = clamp(r * 0.070, 16, 30);
+    const fontSize = clamp(r * 0.075, 18, 34);
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.rotate(mid); // radial
+
+    // radial din centru spre exterior
+    ctx.rotate(mid);
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${fontSize}px Arial`;
 
-    // umbra discreta
-    ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = r * 0.012;
+    // umbra discreta eleganta
+    ctx.shadowColor = "rgba(0,0,0,0.30)";
+    ctx.shadowBlur = r * 0.015;
     ctx.shadowOffsetX = r * 0.006;
     ctx.shadowOffsetY = r * 0.006;
 
-    // contur discret
-    ctx.lineWidth = Math.max(2, r * 0.010);
-    ctx.strokeStyle = "rgba(0,0,0,0.28)";
-    ctx.strokeText(text, 0, 0);
-
-    ctx.fillStyle = "rgba(255,255,255,0.96)";
+    ctx.fillStyle = "#ffffff";
     ctx.fillText(text, 0, 0);
 
     ctx.restore();
@@ -225,3 +225,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
