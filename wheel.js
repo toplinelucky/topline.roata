@@ -32,7 +32,7 @@ const WHEEL_OFFSET_DEG = 0;
 
 // AICI muti textul stanga/dreapta IN PIXELI
 // + = spre dreapta (clockwise, pe arc), - = spre stanga (counterclockwise)
-const TEXT_SHIFT_PX = 12;
+const TEXT_SHIFT_PX = 32;
 
 // pozitia pe raza unde sta textul (centrul vizual al segmentului)
 const TEXT_RADIUS_FACTOR = 0.58;
@@ -271,3 +271,4 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
