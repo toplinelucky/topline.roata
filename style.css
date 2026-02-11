@@ -1,3 +1,4 @@
+/* style.css */
 :root{
   --card-bg: rgba(255,255,255,0.92);
   --stroke: rgba(0,0,0,0.10);
@@ -6,11 +7,11 @@
 
 *{ box-sizing:border-box; }
 html, body { height: 100%; }
+
 body{
   margin:0;
   font-family: Arial, Helvetica, sans-serif;
   color: var(--ink);
-
   background: url("bg.png") no-repeat center top;
   background-size: cover;
 }
@@ -51,7 +52,7 @@ body{
 #wheel{
   width: 100%;
   height: 100%;
-  display: block;
+  display:block;
 }
 
 .needle{
@@ -141,4 +142,3 @@ body{
   font-size: 14px;
   color: rgba(26,15,18,0.75);
 }
-
