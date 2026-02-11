@@ -1,5 +1,5 @@
-// wheel.js (VERSIUNE PRO) — textul poate fi mutat stanga/dreapta fara sa strice premiul
-// COPY/PASTE TOT fisierul
+// wheel.js (PRO - pixel shift) — textul se muta in PIXELI stanga/dreapta
+// si roata se opreste exact cu acul deasupra textului
 
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
@@ -27,12 +27,15 @@ const noteEl = document.getElementById("note");
 let spinning = false;
 let currentAngle = 0;
 
-// micro-reglaj pentru roata vs ac (NU are legatura cu textul)
-const WHEEL_OFFSET_DEG = 5;
+// micro-reglaj roata vs ac (daca roata ta grafica e rotita din fabrica)
+const WHEEL_OFFSET_DEG = 0;
 
-// ✅ DOAR VIZUAL: muti textul stanga/dreapta fara sa afecteze premiul
-// valori bune: -0.12 .. +0.12
-const TEXT_VISUAL_OFFSET_RAD = 0.05;
+// AICI muti textul stanga/dreapta IN PIXELI
+// + = spre dreapta (clockwise, pe arc), - = spre stanga (counterclockwise)
+const TEXT_SHIFT_PX = 12;
+
+// pozitia pe raza unde sta textul (centrul vizual al segmentului)
+const TEXT_RADIUS_FACTOR = 0.58;
 
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
@@ -46,35 +49,51 @@ function normalizeRad(a) {
   return ((a % full) + full) % full;
 }
 
-// ---------------------------
-// TEXT (VIZUAL), independent de castig
-// ---------------------------
+// daca vrei calitate mai buna pe ecrane retina
+function setCanvasHiDPI() {
+  const dpr = window.devicePixelRatio || 1;
+  const css = canvas.getBoundingClientRect();
+  const size = Math.floor(Math.min(css.width, css.height) * dpr);
+  if (size > 0 && (canvas.width !== size || canvas.height !== size)) {
+    canvas.width = size;
+    canvas.height = size;
+  }
+}
+
+// ------------------------------------
+// TEXT (PIXEL SHIFT) + perfect centrat pe segment
+// ------------------------------------
 function drawTexts(r) {
   const slice = (2 * Math.PI) / segments.length;
-  const textRadius = r * 0.58;
+  const textRadius = r * TEXT_RADIUS_FACTOR;
 
   for (let i = 0; i < segments.length; i++) {
-    // mid REAL (centrul segmentului)
     const mid = i * slice + slice / 2;
-
-    // mid VIZUAL (doar pentru afisare)
-    const midVisual = mid + TEXT_VISUAL_OFFSET_RAD;
-
     const text = String(segments[i] ?? "");
 
-    const x = Math.cos(midVisual) * textRadius;
-    const y = Math.sin(midVisual) * textRadius;
+    // punctul de baza (centrul segmentului)
+    const bx = Math.cos(mid) * textRadius;
+    const by = Math.sin(mid) * textRadius;
+
+    // shift tangential in pixeli (stanga/dreapta pe arc)
+    // vector tangential (clockwise) in coordonate canvas:
+    // dx = sin(mid), dy = -cos(mid)
+    const dx = Math.sin(mid) * TEXT_SHIFT_PX;
+    const dy = -Math.cos(mid) * TEXT_SHIFT_PX;
+
+    const x = bx + dx;
+    const y = by + dy;
 
     const fontSize = clamp(r * 0.070, 18, 32);
 
     ctx.save();
     ctx.translate(x, y);
 
-    // text radial (pe lung)
-    ctx.rotate(midVisual);
+    // orientare radial (pe lung) raportat la segment (NU la shift)
+    ctx.rotate(mid);
 
     // citibil pe partea stanga
-    const a = normalizeRad(midVisual);
+    const a = normalizeRad(mid);
     if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) ctx.rotate(Math.PI);
 
     ctx.textAlign = "center";
@@ -97,10 +116,12 @@ function drawTexts(r) {
   }
 }
 
-// ---------------------------
+// ------------------------------------
 // RENDER
-// ---------------------------
+// ------------------------------------
 function renderFrame() {
+  setCanvasHiDPI();
+
   const w = canvas.width;
   const h = canvas.height;
   const cx = w / 2;
@@ -127,9 +148,9 @@ wheelImg.onerror = () => {
   noteEl.textContent = "Nu gasesc wheel-base.png. Verifica numele si locul fisierului.";
 };
 
-// ---------------------------
+// ------------------------------------
 // FORM
-// ---------------------------
+// ------------------------------------
 function updateSpinEnabled() {
   spinBtn.disabled = !preForm.checkValidity();
 }
@@ -141,9 +162,9 @@ function resetFormForNextPerson() {
   updateSpinEnabled();
 }
 
-// ---------------------------
+// ------------------------------------
 // SAVE
-// ---------------------------
+// ------------------------------------
 async function saveParticipant(code) {
   const fd = new FormData(preForm);
   const payload = {
@@ -167,9 +188,9 @@ async function saveParticipant(code) {
   if (!r.ok || !data.ok) throw new Error(data.error || "save_error");
 }
 
-// ---------------------------
-// SPIN PRO: castig calculat din segment REAL (fara offset vizual)
-// ---------------------------
+// ------------------------------------
+// SPIN PRO: acul pica fix pe TEXT (cu pixel shift sincronizat)
+// ------------------------------------
 spinBtn.addEventListener("click", async () => {
   if (spinning) return;
 
@@ -204,12 +225,22 @@ spinBtn.addEventListener("click", async () => {
   // acul este sus (ora 12)
   const pointerAngle = -Math.PI / 2;
 
-  // segment REAL (fara TEXT_VISUAL_OFFSET_RAD)
-  const segStart = winningIndex * slice;
-  const pad = slice * 0.12;
-  const pick = segStart + pad + Math.random() * (slice - 2 * pad);
+  // alegem exact centrul segmentului (ca sa fie mereu perfect)
+  const segCenter = winningIndex * slice + slice / 2;
 
-  const target = pointerAngle - pick + offset;
+  // convertim shift-ul in pixeli intr-un shift unghiular (radiani)
+  // deltaAngle ≈ shiftPx / textRadiusPx
+  // textRadiusPx = r * TEXT_RADIUS_FACTOR (dar r e in render; aici folosim aproximare stabila)
+  // ca sa fie exact, calculam cu raza reala a canvas-ului (care e patrat)
+  const w = canvas.width;
+  const h = canvas.height;
+  const r = Math.min(w, h) * 0.5 * 0.98; // acelasi ca in renderFrame
+  const textRadiusPx = r * TEXT_RADIUS_FACTOR;
+
+  const deltaAngle = (TEXT_SHIFT_PX / Math.max(1, textRadiusPx)); // + clockwise
+
+  // tinta: acul sa cada fix pe pozitia textului (segment center + deltaAngle)
+  const target = pointerAngle - (segCenter + deltaAngle) + offset;
 
   const spins = 6;
   const from = currentAngle;
@@ -232,17 +263,11 @@ spinBtn.addEventListener("click", async () => {
     } else {
       spinning = false;
 
-      // afisare
       resultEl.textContent = "Codul tau: " + chosenCode;
       noteEl.textContent = "Urmatorul participant.";
-
       setTimeout(resetFormForNextPerson, 600);
     }
   }
 
   requestAnimationFrame(animate);
 });
-
-
-
-
