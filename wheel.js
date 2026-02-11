@@ -1,3 +1,4 @@
+// wheel.js
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
 const CODES = ["OFF20","MAI INCEARCA","5%","APROAPE","15%OFF","INCA ODATA"];
@@ -12,44 +13,38 @@ const resultEl = document.getElementById("result");
 const noteEl = document.getElementById("note");
 
 let spinning = false;
-let currentAngle = 0;        // in radiani
-let animReq = null;
+let currentAngle = 0;
+let rafLoop = null;
 
-// daca segmentul nu pica perfect sub ac, ajustezi asta.
-// incepe cu 0, apoi +5 / -5 pana e perfect (in grade).
+// daca nu se aliniaza perfect sub ac, schimba cu +5 / -5 etc (grade)
 const WHEEL_OFFSET_DEG = 0;
 
-// imaginea rotii fara texte
+// imagine roata fara text
 const wheelImg = new Image();
 wheelImg.src = "wheel-base.png";
 
-// setari beculete
-const BULB_COUNT = 28;          // cate becuri pe margine
-const BULB_SPEED = 2.2;         // viteza pulsului
-const BULB_RING = 0.93;         // cat de aproape de margine (0..1)
-const BULB_SIZE = 0.028;        // marimea becului raportata la raza
-const BULB_GLOW = 0.060;        // glow raportat la raza
+// beculete animate
+const BULB_COUNT = 28;
+const BULB_SPEED = 2.2;
+const BULB_RING = 0.93;
+const BULB_SIZE = 0.028;
+const BULB_GLOW = 0.060;
 
 function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
 function setCanvasHiDPI() {
-  // retina safe: canvas ramane 800x800 in HTML, dar randam clar pe orice ecran
   const dpr = window.devicePixelRatio || 1;
-  const cssSize = canvas.getBoundingClientRect();
-  const size = Math.min(cssSize.width, cssSize.height);
-
-  // pastreaza un canvas patrat
-  const px = Math.floor(size * dpr);
-  if (px > 0 && (canvas.width !== px || canvas.height !== px)) {
-    canvas.width = px;
-    canvas.height = px;
+  const css = canvas.getBoundingClientRect();
+  const size = Math.floor(Math.min(css.width, css.height) * dpr);
+  if (size > 0 && (canvas.width !== size || canvas.height !== size)) {
+    canvas.width = size;
+    canvas.height = size;
   }
 }
 
 function drawShadowDisk(cx, cy, r) {
-  // umbra mare sub roata (realistica)
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx + r*0.02, cy + r*0.05, r*0.98, 0, Math.PI * 2);
@@ -59,7 +54,6 @@ function drawShadowDisk(cx, cy, r) {
 }
 
 function drawBulbs(r, timeSec) {
-  // beculete animate, desenate IN INTERIORUL rotii (deci se rotesc cu ea)
   const bulbR = r * BULB_SIZE;
   const glowR = r * BULB_GLOW;
   const ringR = r * BULB_RING;
@@ -67,18 +61,15 @@ function drawBulbs(r, timeSec) {
   for (let i = 0; i < BULB_COUNT; i++) {
     const a = (i / BULB_COUNT) * Math.PI * 2;
 
-    // alternanta + puls (phase shift)
     const phase = timeSec * BULB_SPEED + i * 0.55;
-    const pulse = 0.55 + 0.45 * Math.sin(phase);     // 0..1
+    const pulse = 0.55 + 0.45 * Math.sin(phase);
     const isAlt = i % 2 === 0 ? 1 : 0;
 
-    // lumina mai puternica pe alternanta, mai soft pe restul
     const intensity = clamp((isAlt ? 0.65 : 0.45) + pulse * 0.45, 0.25, 1.0);
 
     const x = Math.cos(a) * ringR;
     const y = Math.sin(a) * ringR;
 
-    // glow exterior
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, glowR, 0, Math.PI * 2);
@@ -86,7 +77,6 @@ function drawBulbs(r, timeSec) {
     ctx.fill();
     ctx.restore();
 
-    // bec (gradient)
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, bulbR, 0, Math.PI * 2);
@@ -106,33 +96,27 @@ function drawBulbs(r, timeSec) {
 }
 
 function drawTexts(r) {
-  // texte cu umbra/emboss realist
   const slice = (2 * Math.PI) / segments.length;
 
   for (let i = 0; i < segments.length; i++) {
     const mid = i * slice + slice / 2;
-
     const text = String(segments[i] ?? "");
     const fontSize = clamp(r * 0.10, 26, 52);
 
     ctx.save();
     ctx.rotate(mid);
 
-    // pozitie text pe raza (reglezi daca vrei mai spre margine/centru)
     const textY = -r * 0.56;
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `${fontSize}px Arial`;
 
-    // shadow subtil (realistic)
     ctx.shadowColor = "rgba(0,0,0,0.30)";
     ctx.shadowBlur = r * 0.02;
     ctx.shadowOffsetX = r * 0.01;
     ctx.shadowOffsetY = r * 0.01;
 
-    // culoare text: alb pe segmente rosii, inchis pe segmente albe
-    // nu stim segmentul din imagine, asa ca punem alb + contur inchis (merge pe ambele)
     ctx.lineWidth = Math.max(2, r * 0.012);
     ctx.strokeStyle = "rgba(0,0,0,0.35)";
     ctx.strokeText(text, 0, textY);
@@ -140,7 +124,6 @@ function drawTexts(r) {
     ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.fillText(text, 0, textY);
 
-    // highlight mic deasupra textului (emboss)
     ctx.shadowColor = "rgba(0,0,0,0)";
     ctx.lineWidth = Math.max(1, r * 0.006);
     ctx.strokeStyle = "rgba(255,255,255,0.35)";
@@ -161,27 +144,21 @@ function renderFrame(timeMs) {
 
   ctx.clearRect(0, 0, w, h);
 
-  // umbra sub roata
   drawShadowDisk(cx, cy, r);
 
-  // roata (imagine + becuri + texte) se roteste impreuna
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate(currentAngle);
 
-  // desen imagine roata
   ctx.drawImage(wheelImg, -r, -r, r * 2, r * 2);
 
-  // becuri animate (in roata)
   const timeSec = timeMs / 1000;
   drawBulbs(r, timeSec);
-
-  // texte peste roata
   drawTexts(r);
 
   ctx.restore();
 
-  animReq = requestAnimationFrame(renderFrame);
+  rafLoop = requestAnimationFrame(renderFrame);
 }
 
 function updateSpinEnabled() {
@@ -218,10 +195,14 @@ async function saveParticipant(chosenCode) {
   if (!r.ok || !data.ok) throw new Error(data.error || "request_failed");
 }
 
-// porneste randarea dupa ce se incarca imaginea
 wheelImg.onload = () => {
-  if (animReq) cancelAnimationFrame(animReq);
-  animReq = requestAnimationFrame(renderFrame);
+  if (rafLoop) cancelAnimationFrame(rafLoop);
+  rafLoop = requestAnimationFrame(renderFrame);
+};
+
+wheelImg.onerror = () => {
+  resultEl.textContent = "";
+  noteEl.textContent = "Nu gasesc imaginea wheel-base.png. Verifica numele si locul fisierului in GitHub.";
 };
 
 spinBtn.addEventListener("click", async () => {
@@ -252,15 +233,18 @@ spinBtn.addEventListener("click", async () => {
     return;
   }
 
-  // pointer e sus, deci tinta este "sus" (0 rad), iar centrul segmentului trebuie sa ajunga sus.
-  // unghi centru segment = i*slice + slice/2
   const slice = (2 * Math.PI) / segments.length;
   const offset = degToRad(WHEEL_OFFSET_DEG);
   const target = -(winningIndex * slice + slice / 2) + offset;
 
   const spins = 6;
   const from = currentAngle;
-  const to = from + spins * 2 * Math.PI + (target - (from % (2 * Math.PI)));
+
+  const full = 2 * Math.PI;
+  const fromNorm = ((from % full) + full) % full;
+  const deltaToTarget = target - fromNorm;
+
+  const to = from + spins * full + deltaToTarget;
 
   const start = performance.now();
   const duration = 2500;
