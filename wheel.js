@@ -26,9 +26,9 @@ wheelImg.src = "wheel-base.png";
 // beculete animate
 const BULB_COUNT = 28;
 const BULB_SPEED = 2.2;
-const BULB_RING = 0.975;   // mai aproape de margine (suprapus pe inel)
-const BULB_SIZE = 0.022;   // un pic mai mic
-const BULB_GLOW = 0.055;   // glow realist, dar nu exagerat
+const BULB_RING = 0.95;     // pozitie pe inel (potrivita pentru roata ta)
+const BULB_SIZE = 0.020;    // marime bec (mai mica, ca in imagine)
+const BULB_GLOW = 0.050;    // glow realist
 
 function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
@@ -102,54 +102,37 @@ function drawTexts(r) {
     const mid = i * slice + slice / 2;
     const text = String(segments[i] ?? "");
 
-    // font mai mic la 8 segmente
-    const fontSize = clamp(r * 0.065, 16, 30);
+    const fontSize = clamp(r * 0.062, 16, 30);
 
     ctx.save();
     ctx.rotate(mid);
 
-    // unde sta textul pe raza (reglezi)
-    // mai spre exterior: -0.62 / mai spre centru: -0.52
-    const radialPos = -r * 0.60;
-    ctx.translate(0, radialPos);
+    // punct de start mai aproape de centru (de aici “pleaca” textul spre exterior)
+    const startFromCenter = r * 0.28;
+    ctx.translate(startFromCenter, 0);
 
-    // Vrem textul sa curga pe raza (dinspre centru spre exterior).
-    // Textul se deseneaza pe axa X, deci il rotim cu -90° ca sa devina pe raza.
-    // Si il “intoarcem” automat pe partea stanga a rotii ca sa fie mereu citibil.
-    const a = ((mid % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-
-    if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) {
-      // partea stanga -> inversam ca sa nu fie cu capul in jos
-      ctx.rotate(Math.PI / 2);
-      ctx.textAlign = "right";
-    } else {
-      // partea dreapta
-      ctx.rotate(-Math.PI / 2);
-      ctx.textAlign = "left";
-    }
-
+    // textul merge pe axa X (care acum este radial, spre exterior)
+    ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${fontSize}px Arial`;
 
-    // umbra realistă
+    // umbra realist
     ctx.shadowColor = "rgba(0,0,0,0.35)";
-    ctx.shadowBlur = r * 0.018;
+    ctx.shadowBlur = r * 0.016;
     ctx.shadowOffsetX = r * 0.008;
     ctx.shadowOffsetY = r * 0.008;
 
-    // contur fin ca sa se vada si pe alb, si pe rosu
+    // contur discret ca sa se vada pe alb si rosu
     ctx.lineWidth = Math.max(2, r * 0.010);
     ctx.strokeStyle = "rgba(0,0,0,0.28)";
     ctx.strokeText(text, 0, 0);
 
-    // fill
     ctx.fillStyle = "rgba(255,255,255,0.96)";
     ctx.fillText(text, 0, 0);
 
     ctx.restore();
   }
 }
-
 
 
 function renderFrame(timeMs) {
@@ -288,6 +271,7 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
 
 
