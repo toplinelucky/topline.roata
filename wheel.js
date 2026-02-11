@@ -26,9 +26,9 @@ wheelImg.src = "wheel-base.png";
 // beculete animate
 const BULB_COUNT = 28;
 const BULB_SPEED = 2.2;
-const BULB_RING = 0.93;
-const BULB_SIZE = 0.028;
-const BULB_GLOW = 0.060;
+const BULB_RING = 0.975;   // mai aproape de margine (suprapus pe inel)
+const BULB_SIZE = 0.022;   // un pic mai mic
+const BULB_GLOW = 0.055;   // glow realist, dar nu exagerat
 
 function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
@@ -288,6 +288,7 @@ spinBtn.addEventListener("click", async () => {
 
   requestAnimationFrame(animate);
 });
+
 
 
 
