@@ -1,10 +1,7 @@
-// wheel.js (PRO - aliniere corecta pe roata PNG) — text centrat in felie + oprire fix pe text
-// COPY/PASTE TOT
-
 const APPS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
 
-// 8 segmente (in ordinea in care vrei sa apara pe roata)
+// ====== SETARI ======
 const segments = [
   "OFF20",
   "MAI INCEARCA",
@@ -16,6 +13,31 @@ const segments = [
   "PREMIU BONUS"
 ];
 
+// segment 0 pleaca de sus
+const BASE_START_ANGLE = -Math.PI / 2;
+
+// daca feliile nu pica perfect pe grafica/acul tau, ajustezi 1-2 grade
+const ALIGN_DEG = 0;
+
+// daca acul tau sus nu e perfect la ora 12, ajustezi 1-2 grade
+const POINTER_OFFSET_DEG = 0;
+
+// unde sta textul pe raza (0.55–0.62)
+const TEXT_RADIUS_FACTOR = 0.58;
+
+// mutare text pe arc (stanga/dreapta) in pixeli
+const TEXT_SHIFT_TANGENTIAL_PX = 0;
+
+// mutare text spre exterior/interior in pixeli (+ = spre exterior, - = spre centru)
+const TEXT_SHIFT_RADIAL_PX = 0;
+
+// rotatie extra a textului (grade). 0 = drept radial (centru -> exterior)
+const TEXT_ROTATE_DEG = -90;
+
+// BUTON TEST: pune false ca sa dispara complet
+const ENABLE_TEST_BUTTON = true;
+
+// ====== ELEMENTE ======
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 
@@ -24,37 +46,15 @@ const spinBtn = document.getElementById("spinBtn");
 const resultEl = document.getElementById("result");
 const noteEl = document.getElementById("note");
 
+// buton test (trebuie sa existe in HTML)
+const testBtn = document.getElementById("testSpinBtn");
+
 let spinning = false;
 let currentAngle = 0;
-
-// =============================
-// 1) ALINIERE CU IMAGINEA TA
-// =============================
-// START_ANGLE = unde incepe segmentul 0 pe roata (in coordonate canvas)
-// -Math.PI/2 inseamna "sus" (ora 12). De obicei asta vrei cand acul e sus.
-const BASE_START_ANGLE = -Math.PI / 2;
-
-// ALIGN_DEG: micro-rotatie pentru a centra textul in feliile PNG-ului tau.
-// Daca textul e "dus" spre o muchie, schimbi aici: 0, 2, -2, 5, -5...
-const ALIGN_DEG = 0;
-
-// micro-reglaj roata vs ac (daca acul tau vizual nu e perfect pe ora 12)
-const POINTER_OFFSET_DEG = 0;
-
-// =============================
-// 2) SHIFT TEXT IN PIXELI (optional)
-// =============================
-// + = spre dreapta pe arc (clockwise), - = spre stanga (counterclockwise)
-const TEXT_SHIFT_PX = 0; // pune 0 ca sa fie perfect pe mijloc
-const TEXT_RADIUS_FACTOR = -0.58;
-
-const wheelImg = new Image();
-wheelImg.src = "wheel-base.png";
 
 function degToRad(d) { return (d * Math.PI) / 180; }
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
 function normalizeRad(a) {
   const full = 2 * Math.PI;
   return ((a % full) + full) % full;
@@ -70,31 +70,154 @@ function setCanvasHiDPI() {
   }
 }
 
-// START_ANGLE FINAL folosit peste tot (desen + spin)
 function getStartAngle() {
   return BASE_START_ANGLE + degToRad(ALIGN_DEG);
 }
 
-// ------------------------------------
-// TEXT centrat in felie (corect pe ax)
-// ------------------------------------
-function drawTexts(r) {
+function drawWheel() {
+  setCanvasHiDPI();
+
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(cx, cy) * 0.98;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // umbra roata
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx + r * 0.02, cy + r * 0.05, r * 0.98, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(currentAngle);
+
   const slice = (2 * Math.PI) / segments.length;
-  const textRadius = r * TEXT_RADIUS_FACTOR;
   const startAngle = getStartAngle();
 
+  // segmente
   for (let i = 0; i < segments.length; i++) {
-    // centrul REAL al feliei i (aliniat cu PNG)
+    const a0 = startAngle + i * slice;
+    const a1 = a0 + slice;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, a0, a1);
+    ctx.closePath();
+
+    // alternanta culori (alb/rosu/rosu sters)
+    ctx.fillStyle = i % 2 === 0 ? "#ffffff" : (i % 4 === 1 ? "#c81f2d" : "#a91522");
+    ctx.fill();
+
+    ctx.lineWidth = Math.max(2, r * 0.008);
+    ctx.strokeStyle = "rgba(255,255,255,0.65)";
+    ctx.stroke();
+  }
+
+  // contur exterior
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(3, r * 0.012);
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.stroke();
+
+  // TEXT RADIAL DREPT (centru -> exterior)
+  drawTexts(r);
+
+  // capac central
+  drawCenterCap(r);
+
+  ctx.restore();
+
+  // ac (pointer) desenat sus
+  drawPointer(cx, cy, r);
+
+  requestAnimationFrame(drawWheel);
+}
+
+function drawCenterCap(r) {
+  const outer = r * 0.18;
+  const inner = r * 0.11;
+
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.22)";
+  ctx.shadowBlur = r * 0.03;
+  ctx.shadowOffsetX = r * 0.01;
+  ctx.shadowOffsetY = r * 0.015;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, outer, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, 0, outer, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(2, r * 0.008);
+  ctx.strokeStyle = "rgba(214,164,74,0.70)";
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, 0, inner, 0, Math.PI * 2);
+
+  const g = ctx.createRadialGradient(-inner*0.3, -inner*0.3, inner*0.2, 0, 0, inner);
+  g.addColorStop(0, "rgba(255,255,255,0.18)");
+  g.addColorStop(0.35, "rgba(190,35,45,0.95)");
+  g.addColorStop(1, "rgba(130,15,25,1)");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPointer(cx, cy, r) {
+  // pointer triunghi ascutit in jos, deasupra rotii
+  const top = cy - r - r * 0.03;
+  const baseY = cy - r + r * 0.06;
+  const halfW = r * 0.06;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(cx, baseY);              // varf in jos
+  ctx.lineTo(cx - halfW, top);
+  ctx.lineTo(cx + halfW, top);
+  ctx.closePath();
+  ctx.fillStyle = "#d6a44a";
+  ctx.fill();
+
+  ctx.shadowColor = "rgba(0,0,0,0.25)";
+  ctx.shadowBlur = r * 0.02;
+  ctx.shadowOffsetY = r * 0.01;
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTexts(r) {
+  const slice = (2 * Math.PI) / segments.length;
+  const startAngle = getStartAngle();
+
+  const textRadiusBase = r * TEXT_RADIUS_FACTOR;
+
+  for (let i = 0; i < segments.length; i++) {
     const mid = startAngle + i * slice + slice / 2;
     const text = String(segments[i] ?? "");
 
-    // punct de baza (centrul feliei pe raza)
+    const textRadius = textRadiusBase + TEXT_SHIFT_RADIAL_PX;
+
+    // baza pe raza
     const bx = Math.cos(mid) * textRadius;
     const by = Math.sin(mid) * textRadius;
 
-    // shift tangential in pixeli (optional)
-    const dx = Math.sin(mid) * TEXT_SHIFT_PX;
-    const dy = -Math.cos(mid) * TEXT_SHIFT_PX;
+    // shift tangential in pixeli
+    const dx = Math.sin(mid) * TEXT_SHIFT_TANGENTIAL_PX;
+    const dy = -Math.cos(mid) * TEXT_SHIFT_TANGENTIAL_PX;
 
     const x = bx + dx;
     const y = by + dy;
@@ -104,10 +227,10 @@ function drawTexts(r) {
     ctx.save();
     ctx.translate(x, y);
 
-    // text pe lung (radial)
-    ctx.rotate(mid);
+    // text radial drept: mid + 90 deg
+    ctx.rotate(mid + Math.PI / 2 + degToRad(TEXT_ROTATE_DEG));
 
-    // daca vrei sa NU se intoarca niciodata, comenteaza blocul de mai jos
+    // sa fie citibil (fara cap in jos)
     const a = normalizeRad(mid);
     if (a > Math.PI / 2 && a < (3 * Math.PI) / 2) ctx.rotate(Math.PI);
 
@@ -131,41 +254,34 @@ function drawTexts(r) {
   }
 }
 
-// ------------------------------------
-// RENDER
-// ------------------------------------
-function renderFrame() {
-  setCanvasHiDPI();
-
+// unghiul exact unde este ANCORA textului (x,y) pentru segmentul i
+// folosim asta ca acul sa pice fix pe text, nu pe segment
+function getTextAnchorAngle(i) {
   const w = canvas.width;
   const h = canvas.height;
-  const cx = w / 2;
-  const cy = h / 2;
-  const r = Math.min(cx, cy) * 0.98;
+  const rWheel = Math.min(w, h) * 0.5 * 0.98;
 
-  ctx.clearRect(0, 0, w, h);
+  const slice = (2 * Math.PI) / segments.length;
+  const startAngle = getStartAngle();
 
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(currentAngle);
+  const mid = startAngle + i * slice + slice / 2;
 
-  ctx.drawImage(wheelImg, -r, -r, r * 2, r * 2);
-  drawTexts(r);
+  const textRadiusBase = rWheel * TEXT_RADIUS_FACTOR;
+  const textRadius = textRadiusBase + TEXT_SHIFT_RADIAL_PX;
 
-  ctx.restore();
+  const bx = Math.cos(mid) * textRadius;
+  const by = Math.sin(mid) * textRadius;
 
-  requestAnimationFrame(renderFrame);
+  const dx = Math.sin(mid) * TEXT_SHIFT_TANGENTIAL_PX;
+  const dy = -Math.cos(mid) * TEXT_SHIFT_TANGENTIAL_PX;
+
+  const x = bx + dx;
+  const y = by + dy;
+
+  return Math.atan2(y, x);
 }
 
-wheelImg.onload = () => requestAnimationFrame(renderFrame);
-wheelImg.onerror = () => {
-  resultEl.textContent = "";
-  noteEl.textContent = "Nu gasesc wheel-base.png. Verifica numele si locul fisierului.";
-};
-
-// ------------------------------------
-// FORM
-// ------------------------------------
+// ===== FORM =====
 function updateSpinEnabled() {
   spinBtn.disabled = !preForm.checkValidity();
 }
@@ -177,9 +293,7 @@ function resetFormForNextPerson() {
   updateSpinEnabled();
 }
 
-// ------------------------------------
-// SAVE
-// ------------------------------------
+// ===== SAVE =====
 async function saveParticipant(code) {
   const fd = new FormData(preForm);
   const payload = {
@@ -203,9 +317,7 @@ async function saveParticipant(code) {
   if (!r.ok || !data.ok) throw new Error(data.error || "save_error");
 }
 
-// ------------------------------------
-// SPIN: acul pica FIX pe centrul textului (centrul feliei + shift pixeli)
-// ------------------------------------
+// ===== SPIN NORMAL (salveaza) =====
 spinBtn.addEventListener("click", async () => {
   if (spinning) return;
 
@@ -234,24 +346,40 @@ spinBtn.addEventListener("click", async () => {
     return;
   }
 
-  const slice = (2 * Math.PI) / segments.length;
+  spinToText(winningIndex, () => {
+    resultEl.textContent = "Codul tau: " + chosenCode;
+    noteEl.textContent = "Urmatorul participant.";
+    setTimeout(resetFormForNextPerson, 600);
+  });
+});
 
-  // acul sus (ora 12) + offset daca acul tau nu e perfect centrat
+// ===== SPIN TEST (NU salveaza) =====
+if (testBtn) {
+  testBtn.style.display = ENABLE_TEST_BUTTON ? "inline-block" : "none";
+  testBtn.addEventListener("click", () => {
+    if (!ENABLE_TEST_BUTTON) return;
+    if (spinning) return;
+
+    resultEl.textContent = "TEST: se roteste...";
+    noteEl.textContent = "";
+
+    const idx = Math.floor(Math.random() * segments.length);
+    spinToText(idx, () => {
+      resultEl.textContent = "TEST: a picat " + segments[idx];
+      noteEl.textContent = "Mod test activ (nu se salveaza).";
+    });
+  });
+}
+
+function spinToText(winningIndex, onDone) {
+  // acul sus
   const pointerAngle = (-Math.PI / 2) + degToRad(POINTER_OFFSET_DEG);
 
-  const startAngle = getStartAngle();
+  // tinta = unghiul textului (nu segmentul)
+  const textAngle = getTextAnchorAngle(winningIndex);
 
-  // centrul REAL al feliei (aliniat cu PNG)
-  const segCenter = startAngle + winningIndex * slice + slice / 2;
-
-  // convertim shift pixeli -> shift unghi (radiani) pe raza textului
-  const w = canvas.width, h = canvas.height;
-  const r = Math.min(w, h) * 0.5 * 0.98;
-  const textRadiusPx = r * TEXT_RADIUS_FACTOR;
-  const deltaAngle = (TEXT_SHIFT_PX / Math.max(1, textRadiusPx)); // + clockwise
-
-  // tinta: acul sa fie exact pe text (centrul feliei + shift)
-  const target = pointerAngle - (segCenter + deltaAngle);
+  // vrem: currentAngle_final + textAngle == pointerAngle (mod 2pi)
+  const target = pointerAngle - textAngle;
 
   const spins = 6;
   const from = currentAngle;
@@ -259,11 +387,16 @@ spinBtn.addEventListener("click", async () => {
 
   const fromNorm = normalizeRad(from);
   const targetNorm = normalizeRad(target);
+
   const delta = targetNorm - fromNorm;
   const to = from + spins * full + delta;
 
   const start = performance.now();
   const duration = 2500;
+
+  spinning = true;
+  spinBtn.disabled = true;
+  if (testBtn) testBtn.disabled = true;
 
   function animate(now) {
     const t = Math.min(1, (now - start) / duration);
@@ -274,12 +407,14 @@ spinBtn.addEventListener("click", async () => {
       requestAnimationFrame(animate);
     } else {
       spinning = false;
-      resultEl.textContent = "Codul tau: " + chosenCode;
-      noteEl.textContent = "Urmatorul participant.";
-      setTimeout(resetFormForNextPerson, 600);
+      if (testBtn) testBtn.disabled = false;
+      updateSpinEnabled();
+      onDone && onDone();
     }
   }
 
   requestAnimationFrame(animate);
-});
+}
 
+// PORNESTE ANIMATIA
+requestAnimationFrame(drawWheel);
