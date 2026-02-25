@@ -1,0 +1,48 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Roata norocului</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="screen">
+    <h1 class="title">Roteste roata norocului!</h1>
+<button id="testSpinBtn" type="button">TEST SPIN</button>
+
+    <section class="wheel-area">
+      <div class="wheel-wrap">
+        <img class="needle" src="needle.png" alt="" aria-hidden="true" />
+        <canvas id="wheel" width="800" height="800"></canvas>
+      </div>
+    </section>
+
+    <section class="card">
+      <form id="preForm" class="form" autocomplete="off">
+        <input class="field" type="text" name="name" placeholder="Nume" required />
+        <input class="field" type="email" name="email" placeholder="Email" required />
+        <input class="field" type="tel" name="phone" placeholder="Telefon" required />
+
+        <input class="field" type="number" name="receiptValue" placeholder="Valoare bon (lei)" min="1" step="0.01" required />
+        <input class="field" type="text" name="receiptNumber" placeholder="Numar bon" required />
+
+        <label class="consent">
+          <input type="checkbox" name="consent" required />
+          Sunt de acord cu prelucrarea datelor.
+        </label>
+
+        <button id="spinBtn" class="spin-btn" type="button" disabled>
+          <img src="btn-spin.png" alt="Roteste" />
+        </button>
+      </form>
+
+      <div id="result" class="result"></div>
+      <div id="note" class="note"></div>
+    </section>
+  </main>
+
+  <script src="wheel.js"></script>
+</body>
+</html>
