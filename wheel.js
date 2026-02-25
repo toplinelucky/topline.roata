@@ -1,5 +1,5 @@
 const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwtA4rO_ukz6v51ArwoVOXpw-nZCu4x3zDDWT6zCN7CGsFxYKEpNHXoY7imkgJOOJfZ/exec";
+  "https://script.google.com/macros/s/AKfycbyTyce_GthOl7cbVHCf9tofvcurQUdQwt4GZRyGRNHrYFzCoSKHiA-jycG2qn1SPaKu/exec";
 
 // ====== SETARI ======
 const segments = [
